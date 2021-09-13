@@ -1,2 +1,2 @@
 # EDLCompress
-C# conversion of EdlCompress by ZoidKity
+C# conversion of EdlCompress by Zoinkity
