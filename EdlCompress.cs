@@ -12,7 +12,9 @@ namespace wdcossey
     public interface IEdlCompress
     {
         Stream Decompress(string fileName);
+        void Decompress(string fileName, Stream @out);
         Stream Decompress(Stream @in);
+        void Decompress(Stream @in, Stream @out);
 
         public EdlCompress.EdlHeader ParseHeader(string fileName);
         public EdlCompress.EdlHeader ParseHeader(Stream @in);
@@ -23,7 +25,7 @@ namespace wdcossey
 
     public class EdlCompress : IEdlCompress
     {
-        public enum EdlEndianType : int
+        public enum EdlEndianType : byte
         {
             /// <summary>
             /// Little (0) Endian
@@ -52,11 +54,15 @@ namespace wdcossey
             /// <summary>decompressed size</summary>
             public long DecompressedSize { get; set; }
 
-            public static EdlHeader Parse(BinaryReader reader)
+            private static bool ValidateHeader(BinaryReader reader)
             {
                 var headerChars = reader.ReadChars(3);
+                return headerChars.SequenceEqual(EdlHeaderIdentifier);
+            }
 
-                if (!headerChars.SequenceEqual(EdlHeaderIdentifier))
+            public static EdlHeader Parse(BinaryReader reader)
+            {
+                if (!ValidateHeader(reader))
                     throw new InvalidOperationException("Does not contain a valid EDL header");
 
                 var compressionType = reader.ReadByte();
@@ -352,6 +358,12 @@ namespace wdcossey
             return Decompress(fileStream);
         }
 
+        public void Decompress(string fileName, Stream @out)
+        {
+            using var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read);
+            DecompressInternal(fileStream, @out);
+        }
+
         public Stream Decompress(Stream @in)
         {
             var buffer = DecompressAsSpan(@in);
@@ -359,6 +371,17 @@ namespace wdcossey
             result.Write(buffer);
             result.Seek(0, SeekOrigin.Begin);
             return result;
+        }
+
+        public void Decompress(Stream @in, Stream @out)
+        {
+            DecompressInternal(@in, @out);
+        }
+
+        private void DecompressInternal(Stream @in, Stream @out)
+        {
+            var buffer = DecompressAsSpan(@in);
+            @out.Write(buffer);
         }
 
         public EdlHeader ParseHeader(string fileName)
