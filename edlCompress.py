@@ -1,14 +1,11 @@
-﻿import array
-import io
-from io import FileIO, BytesIO
-from typing import BinaryIO, overload
+﻿from typing import BinaryIO
 from enum import Enum
 
 
 class ByteSwap:
     @staticmethod
     def swap(w: int):
-        return (w >> 24) | ((w >> 8) & 0x0000ff00) | ((w << 8) & 0x00ff0000) | (w << 24)
+        return ((w >> 24) | ((w >> 8) & 0x0000ff00) | ((w << 8) & 0x00ff0000) | (w << 24)) & 0xFFFFFFFF
 
 
 class EdlEndianType(Enum):
@@ -24,11 +21,11 @@ class EdlHeader:
             raise ValueError("Not a valid EDL file")
 
         compression_type = int.from_bytes(binary_io.read(1), byteorder='little')
-        endian = EdlEndianType(compression_type >> 7)
+        endian: EdlEndianType = EdlEndianType(compression_type >> 7)
         compressed_size = int.from_bytes(binary_io.read(4), byteorder='little')
         decompressed_size = int.from_bytes(binary_io.read(4), byteorder='little')
 
-        if endian == 1:
+        if endian == EdlEndianType.Big:
             compressed_size = ByteSwap.swap(compressed_size)
             decompressed_size = ByteSwap.swap(decompressed_size)
 
